@@ -1,27 +1,20 @@
--- Set <space> as the leader key
--- See `:help mapleader`
---  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
+-- set <space> as the leader key
+-- see `:help mapleader`
+--  note: must happen before plugins are loaded (otherwise wrong leader will be used)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
--- Set to true if you have a Nerd Font installed and selected in the terminal
+-- set to true if you have a nerd font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
--- [[ Setting options ]]
--- See `:help vim.o`
--- NOTE: You can change these options as you wish!
---  For more options, you can see `:help option-list`
-
--- Make line numbers default
+-- make line numbers default
 vim.o.number = true
--- You can also add relative line numbers, to help with jumping.
---  Experiment for yourself to see if you like it!
 vim.o.relativenumber = true
 
--- Enable mouse mode, can be useful for resizing splits for example!
-vim.o.mouse = ""
+-- enable mouse mode, can be useful for resizing splits for example!
+vim.o.mouse = 'a'
 
--- Don't show the mode, since it's already in the status line
+-- don't show the mode, since it's already in the status line
 vim.o.showmode = false
 
 -- Sync clipboard between OS and Neovim.
@@ -64,7 +57,13 @@ vim.o.splitbelow = true
 --   See `:help lua-options`
 --   and `:help lua-options-guide`
 vim.o.list = true
-vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+vim.opt.listchars = {
+  tab = '▸ ',
+  trail = '·',
+  extends = '⟩',
+  precedes = '⟨',
+  nbsp = '␣',
+}
 
 -- Preview substitutions live, as you type!
 vim.o.inccommand = 'split'
@@ -113,72 +112,55 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
--- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
--- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
--- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
--- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
--- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
-
-
 -- Say (speak) selected text (macOS only)
-vim.keymap.set("x", "ss", function()
-  if vim.fn.executable("say") ~= 1 then
-    vim.notify("The `say` command is not available (macOS only).", vim.log.levels.ERROR)
+vim.keymap.set('x', 'ss', function()
+  if vim.fn.executable 'say' ~= 1 then
+    vim.notify('The `say` command is not available (macOS only).', vim.log.levels.ERROR)
     return
   end
 
   -- Save current register and type
-  local save_reg = vim.fn.getreg("z")
-  local save_type = vim.fn.getregtype("z")
+  local save_reg = vim.fn.getreg 'z'
+  local save_type = vim.fn.getregtype 'z'
 
   -- Yank visual selection into register z (works for all visual modes)
-  vim.cmd('silent normal! "zy')
+  vim.cmd 'silent normal! "zy'
 
   -- Read and restore
-  local text = vim.fn.getreg("z")
-  vim.fn.setreg("z", save_reg, save_type)
+  local text = vim.fn.getreg 'z'
+  vim.fn.setreg('z', save_reg, save_type)
 
-  text =text
-    :gsub("-", "")
-    :gsub("<", "")
-    :gsub(">", "")
+  text = text:gsub('-', ''):gsub('<', ''):gsub('>', '')
 
-  if text == nil or text == "" then
-    vim.notify("No text selected.", vim.log.levels.WARN)
+  if text == nil or text == '' then
+    vim.notify('No text selected.', vim.log.levels.WARN)
     return
   end
 
-
   -- Run the `say` command with -r 400
-  vim.fn.jobstart({ "say", "-r", "400", text }, {
-    on_exit = function()
-    end,
+  vim.fn.jobstart({ 'say', '-r', '400', text }, {
+    on_exit = function() end,
     detach = false,
   })
 
   -- Get end mark of visual selection
-  local erow, ecol = unpack(vim.api.nvim_buf_get_mark(0, ">"))
-
+  local erow, ecol = unpack(vim.api.nvim_buf_get_mark(0, '>'))
 
   -- Move cursor to next word start after the visual selection
   vim.schedule(function()
-    local line = vim.api.nvim_buf_get_lines(0, erow - 1, erow, false)[1] or ""
+    local line = vim.api.nvim_buf_get_lines(0, erow - 1, erow, false)[1] or ''
     local line_len = #line
     local safe_col = math.min(ecol, line_len)
 
     pcall(vim.api.nvim_win_set_cursor, 0, { erow, safe_col })
 
-    pcall(vim.cmd, "silent normal! W")
+    pcall(vim.cmd, 'silent normal! W')
   end)
-end, { desc = "Say selected text", silent = true })
-
+end, { desc = 'Say selected text', silent = true })
 
 -- [[ Basic Autocommands ]]
---  See `:help lua-guide-autocommands`
 
 -- Highlight when yanking (copying) text
---  Try it with `yap` in normal mode
---  See `:help vim.hl.on_yank()`
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
@@ -188,7 +170,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
---    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = 'https://github.com/folke/lazy.nvim.git'
